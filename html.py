@@ -88,7 +88,7 @@ def make_html_global():
     splus_tiles = Table.read(splus_tiles_file, format="csv")
 
 # make the front page
-    html_file = './splus.html'
+    html_file = './html/splus.html'
 
     html_open = ['<!DOCTYPE html>','<head>','<style>body {color: green;}</style>',\
                 '<style>a:active {color:#00FF00;}</style>','<style>a:visited {color: #FF0000;}</style>',\

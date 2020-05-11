@@ -1,5 +1,9 @@
 # iDR2-photoz-SPLUS
 
+========== TILES.PY =============
+=================================
+
+
 ========== HTML.PY =============
 
 This makes the iDR2 data analysis overview websites. It runs two routines. The first makes the main site (./html/splus.html) with links to all the individual iDR2 tiles, and the second makes the websites for each individual tile. It assumes that all the plots are present in the location ./html/<AREA>/ (with <AREA> = STRIPE82,HYDRA,SPLUS) and that figures have the names ./html/<AREA>/<AREA>-TILENAME_<plot_type>.png. The <plot_type> currently produced by idr2.py are:
@@ -28,5 +32,7 @@ This makes the iDR2 data analysis overview websites. It runs two routines. The f
 
 To be done: 
 
-========== HTML.PY =============
+- 
+
+=================================
 

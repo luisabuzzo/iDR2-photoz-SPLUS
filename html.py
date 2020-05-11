@@ -87,7 +87,31 @@ def make_html_global():
     splus_tiles_file = './data/all_pointings.csv'
     splus_tiles = Table.read(splus_tiles_file, format="csv")
 
+# make the front page
+    html_file = './splus.html'
+
+    html_open = ['<!DOCTYPE html>','<head>','<style>body {color: green;}</style>',\
+                '<style>a:active {color:#00FF00;}</style>','<style>a:visited {color: #FF0000;}</style>',\
+                '<style>img {display: block; margin-left: auto; margin-right: auto;}</style>','</head>','<body>']
+   
+    html_title = '<p style="color:blue">S-PLUS internal Data Release 2</p>'
+    html_skyplot = '<img style="width:50%" src="./skyplot.png" width="600" onclick="window.open(' + "'./skyplot.png', '_blank');" + '>'
+
+    html_close = ['</body>','</html>']
+    html_break = '<br>'
+
+    html_code = []
+    for k in range(0,len(html_open)): 
+        html_code.append(html_open[k]+'\n')
+
+    html_code.append(html_title+'\n')
+    html_code.append(html_skyplot+'\n')
+
     for area in areas:
+
+        html_code.append('<p style="color:blue">' + area + ' tiles</p>')
+        html_code.append(html_break)
+
         tilefile = 'data/' + area + '.csv'
         tiles = Table.read(tilefile, format="csv")
         htmlstring = ''
@@ -102,10 +126,19 @@ def make_html_global():
                 htmlstring = htmlstring + ahref_open + idd + ahref_close + sep
             else:
                 htmlstring = htmlstring + ahref_open + idd + ahref_close
-        #print(htmlstring)
-        np.savetxt(area + '.links',[htmlstring],fmt="%s")
-        print(area, " html links saved to ", area + '.links')
+        html_code.append(htmlstring)
 
+    for k in range(0,len(html_close)):
+        html_code.append(html_close[k]+'\n')
+
+    np.savetxt(html_file,[html_code],fmt="%s")
+    print("Main webpage created: ", html_file)
+
+# make the individual pages
+
+    for area in areas:
+        tilefile = 'data/' + area + '.csv'
+        tiles = Table.read(tilefile, format="csv")
         make_html_tiles(area,tiles,splus_tiles)
 
 

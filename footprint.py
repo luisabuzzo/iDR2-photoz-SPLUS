@@ -206,7 +206,7 @@ def main():
         dec = [-30,0,30] 
         plot_objects(ra,dec,symbol='o',color='r',markersize=10) # plot them on the map
 
-	if plot_catalog == 3:
+    if plot_catalog == 3:
         filename = 'SPECZ_SAMPLE_JULIA_UNIQUE_GALAXIES.fits'
 		cat = fits.getdata(path + catalog_path + filename)
 		# select 100000 random sources
@@ -218,15 +218,15 @@ def main():
 		cat = cat[sel]
 		plot_objects(cat['RA'],cat['DEC'],symbol='.',color='r',markersize=1) # plot them on the map		
 	
-	if highlight == True:
-		plt.savefig(path + 'results/' + highlight_survey + '-' + highlight_tile + '_skyplot.png',transparent=True,dpi=600)
-	else:	
-		plt.savefig(path + 'skyplot.png',transparent=True,dpi=600)
+    if highlight == True:
+	plt.savefig(path + 'results/' + highlight_survey + '-' + highlight_tile + '_skyplot.png',transparent=True,dpi=600)
+    else:	
+	plt.savefig(path + 'skyplot.png',transparent=True,dpi=600)
 
-	if plotonscreen == 1:	
-		plt.show()
-	else:
-		plt.close()
+    if plotonscreen == 1:	
+	plt.show()
+    else:
+	plt.close()
         
     return
               

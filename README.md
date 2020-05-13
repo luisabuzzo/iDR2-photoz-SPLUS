@@ -1,14 +1,13 @@
 # iDR2-photoz-SPLUS
+Contents:
 
-========== FOOTPRINT.PY =============
+1. FOOTPRINT.PY 
 This routine makes a plot of the sky with the tiles from the S-PLUS footprint and the iDR2 overlaid. Other catalogs of sources can be added as an option. The program needs some files contained in the footprint_data.tar.gz package.
-=================================
-
-========== EXTRACT_SPECTRA.PY =============
+---
+2. EXTRACT_SPECTRA.PY 
 This routine is used to manage the BC03 .ised_ASCII files and produce a more convenient output, which can then be read to quickly extract spectra of the SED at a given age from the library. 
-=================================
-
-========== HTML.PY =============
+---
+3. HTML.PY 
 This makes the iDR2 data analysis overview websites. It runs two routines directly after each other. The routine make_html_global() makes the main site (./html/splus.html) with the footprint plot and links to all the individual iDR2 tiles. The routine make_html_tiles() makes the websites for each individual tile. It assumes that all the plots are present in the location ./html/<AREA>/ (with <AREA> = STRIPE82,HYDRA,SPLUS) and that figures have the names ./html/<AREA>/<AREA>-TILENAME_<plot_type>.png. The <plot_type> currently produced by idr2.py are:
   
   skyplot = location of the tile on the sky
@@ -35,5 +34,5 @@ This makes the iDR2 data analysis overview websites. It runs two routines direct
 
 Wanted/would like:
 - make the footprint plot clickable such that one can also go to a pointing directly by plotting on a location in the plot.
-=================================
+---
 

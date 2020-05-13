@@ -121,7 +121,6 @@ def main():
     imf = 'chab'            # imf
     dust = '_dust00'        # dust
     sedfile = 'bc2003_' + res + '_m' + Z + '_' + imf + '_' + sfh + dust + '.ised_ASCII'
-    sedfile = 'bc2003_lr_m62_chab_ssp.ised_ASCII'
     outputfile = 'extracted_' + sedfile
 
     # extract the spectra from the .ised_ASCII. It will skip this if it finds a previously made 

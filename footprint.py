@@ -160,15 +160,26 @@ def plot_objects(ra,dec,markersize,color,symbol):
 def main():
 
     path = './'
-
-    make_figure(moll=True, ecliptic=True, footprint=True, idr2=True, title='S-PLUS', highlight=False, highlight_survey='HYDRA', highlight_tile='HYDRA-0011', path='./')
+    catalog_path = 'Catalogs/'
+    moll = True
+    ecliptic = True
+    footprint = True
+    idr2 = True
+    title = 'S-PLUS'
+    highlight = False
+    highlight_survey = 'HYDRA'
+    highlight_tile = 'HYDRA-0011'
 
     # overplotting catalogs, make sure that coordinates are in degrees
     plot_catalog = 0    # 0 = do nothing
     # plot_catalog = 1    # overplot objects from S-PLUS catalogs
     # plot_catalog = 2    # overplot other things 
-    # plot_catalog = 3    # overplot ABELL cluster catalog
+    # plot_catalog = 3    # overplot Julia spectroscopic catalog
 
+    # make the sky projection with footprints
+    make_figure(moll=moll, ecliptic=ecliptic, footprint=footprint, idr2=idr2, title=title, highlight=highlight, highlight_survey=highlight_survey, highlight_tile=highlight_tile, path=path)
+
+    # overplot things
     if plot_catalog == 0:
         print('No objects overplotted.')
 
@@ -176,7 +187,6 @@ def main():
         print('Overplotting S-PLUS catalogs...')
 
         # overplot S-PLUS sources
-        catalog_path = path + catalog_path
         catfile = 'merged_id.fits'
         data = fits.open(path + catalog_path + catfile)
         cat = data[1].data
@@ -196,9 +206,29 @@ def main():
         dec = [-30,0,30] 
         plot_objects(ra,dec,symbol='o',color='r',markersize=10) # plot them on the map
 
-    plt.savefig(path + 'skyplot.png',transparent=True,dpi=600)
+	if plot_catalog == 3:
+        filename = 'SPECZ_SAMPLE_JULIA_UNIQUE_GALAXIES.fits'
+		cat = fits.getdata(path + catalog_path + filename)
+		# select 100000 random sources
+		nrand = 100000
+		sel = np.int_(np.zeros((nrand)))
+		for p in range(0,nrand):
+		    num = randint(0, len(cat))
+		    sel[p] = num
+		cat = cat[sel]
+		plot_objects(cat['RA'],cat['DEC'],symbol='.',color='r',markersize=1) # plot them on the map		
+	
+	if highlight == True:
+		plt.savefig(path + 'results/' + highlight_survey + '-' + highlight_tile + '_skyplot.png',transparent=True,dpi=600)
+	else:	
+		plt.savefig(path + 'skyplot.png',transparent=True,dpi=600)
 
-    plt.show()
- 
+	if plotonscreen == 1:	
+		plt.show()
+	else:
+		plt.close()
+        
+    return
+              
 if __name__ == '__main__':
     main()

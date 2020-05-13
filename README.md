@@ -10,7 +10,10 @@ This routine makes a plot of the sky with the tiles from the S-PLUS footprint an
 3. extract_spectra.py - 
 This routine is used to manage the BC03 .ised_ASCII files and produce a more convenient output, which can then be read to quickly extract spectra of the SED at a given age from the library. 
 ---
-4. html.py - 
+4. check_splus.py - 
+This routine checks if a given location is covered by the S-PLUS and IDR2 footprints within a given search radius, and checks whether there are any objects in the iDR2 source catalog that are within a given search radius.
+---
+5. html.py - 
 This makes the iDR2 data analysis overview websites. It runs two routines directly after each other. The routine make_html_global() makes the main site (./html/splus.html) with the footprint plot and links to all the individual iDR2 tiles. The routine make_html_tiles() makes the websites for each individual tile. It assumes that all the plots are present in the location ./html/AREA/ (with AREA = STRIPE82,HYDRA,SPLUS) and that figures have the names ./html/AREA/AREA-TILENAME_PLOTTYPE.png. The PLOTTYPE currently produced by idr2.py are:
   
 -skyplot = location of the tile on the sky

@@ -282,7 +282,7 @@ def main():
 		if lamspec_min > shortest_wavelength_filters:
 			print("The spectrum does not cover the lower end of the filters.")
 			extend_lower = 'yes'
-		if lamspec_min > shortest_wavelength_filters:
+		if lamspec_max < longest_wavelength_filters:
 			print("The spectrum does not cover the upper end of the filters.")
 			extend_higher = 'yes'
 

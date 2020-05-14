@@ -1,19 +1,26 @@
 # iDR2-photoz-SPLUS
 Contents:
 
-1. create_lephare_catalogues.py - 
+1. synthetic_mags.py - 
+Calculate synthetic magnitudes from spectra, performs checks and extends spectra using templates, scales everything to match additional broad-band constraints, ...
+NEEDS:
+- IGMabs.py
+- filter_folder.tar.gz
+- template_folder.tar.gz
+
+2. create_lephare_catalogues.py - 
 Description...
 ---
-2. footprint.py - 
+3. footprint.py - 
 This routine makes a plot of the sky with the tiles from the S-PLUS footprint and the iDR2 overlaid. Other catalogs of sources can be added as an option. The program needs some files contained in the footprint_data.tar.gz package.
 ---
-3. extract_spectra.py - 
+4. extract_spectra.py - 
 This routine is used to manage the BC03 .ised_ASCII files and produce a more convenient output, which can then be read to quickly extract spectra of the SED at a given age from the library. 
 ---
-4. check_splus.py - 
+5. check_splus.py - 
 This routine checks if a given location is covered by the S-PLUS and IDR2 footprints within a given search radius, and checks whether there are any objects in the iDR2 source catalog that are within a given search radius.
 ---
-5. html.py - 
+6. html.py - 
 This makes the iDR2 data analysis overview websites. It runs two routines directly after each other. The routine make_html_global() makes the main site (./html/splus.html) with the footprint plot and links to all the individual iDR2 tiles. The routine make_html_tiles() makes the websites for each individual tile. It assumes that all the plots are present in the location ./html/AREA/ (with AREA = STRIPE82,HYDRA,SPLUS) and that figures have the names ./html/AREA/AREA-TILENAME_PLOTTYPE.png. The PLOTTYPE currently produced by idr2.py are:
   
 -skyplot = location of the tile on the sky

@@ -7,7 +7,7 @@ NEEDS:
 - IGMabs.py
 - filter_folder.tar.gz
 - template_folder.tar.gz
-
+---
 2. create_lephare_catalogues.py - 
 Description...
 ---

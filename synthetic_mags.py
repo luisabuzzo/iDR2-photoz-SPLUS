@@ -8,7 +8,47 @@ import os.path
 from astropy.convolution import convolve, Gaussian1DKernel
 from astropy.table import Table,vstack,hstack
 from IGMabs import *
+from astropy import units as u
+from astropy import wcs
+from astropy.coordinates import SkyCoord
 from MW_unred_fitzpatrick99 import *
+from astroquery.irsa_dust import IrsaDust
+
+# return E(B-V) at a given RA,DEC from the SFD dust maps
+def calc_ebv(ra, dec): 
+	#determine E(B-V) from dust maps
+	#ebv = np.zeros(len(ra))
+	#mapdir = './'
+	#nmap = fits.getdata('data/SFD_dust_4096_ngp.fits')
+	#smap = fits.getdata('data/SFD_dust_4096_sgp.fits')
+
+	c = SkyCoord(ra=ra*u.degree, dec=dec*u.degree, frame='icrs')
+	coo = c.to_string('hmsdms')
+	#l = c_gal.l.degree
+	#b = c_gal.b.degree
+	#im = IrsaDust.get_images(coo[0],image_type='ebv',radius=2*u.deg)
+	#print(im)
+	table = IrsaDust.get_query_table(coo[0],section='ebv')
+	ebv = table['ext SFD mean'][0]
+
+
+	#wn = wcs.WCS('data/SFD_dust_4096_ngp.fits')
+	#ws = wcs.WCS('data/SFD_dust_4096_sgp.fits')
+	#print wn
+	#for i in range(0,len(ra)):
+#	l, b = equatorial2galactic(ra[i], dec[i])
+	#if b >= 0.0: 
+	#	ebvmap = fits.getdata('data/SFD_dust_4096_ngp.fits')
+	#	w = wn
+	#		#hem = ' ngp '
+	#else:
+	#	ebvmap = fits.getdata('data/SFD_dust_4096_sgp.fits')
+	#	w = ws
+	#		#hem = ' sgp '
+	#x, y = w.all_world2pix(l, b, 1) #converts the position in degrees to pixels coordinates
+	#ebv = ebvmap[np.int_(np.round(y)),np.int_(np.round(x))]
+			#print ra[i], dec[i], ' > ', l, b, hem, x, y, ebv[i]
+	return ebv
 
 # add the filter transmission curves to an active plot
 def PlotFilters(FilterNames, FilterCurves, FilterLen, Tmin, Tmax, col, zorder, linethick):
@@ -88,7 +128,7 @@ def ReadFilters(filterpath, filterlist):
 	return FilterName, Filters, FilterType, FilterLength, N_filters, l_eff, w_eff, FilterShortname, FilterEdges
 
 # calculate the AB magnitudes given a spectrum and a set of filters	
-def CalcMags(Wave, Spectrum, N_filters, FilterCurves, FilterLength, FilterType, l_eff, FilterEdges):
+def CalcMags(Wave, Spectrum, N_filters, FilterCurves, FilterLength, FilterType, l_eff, FilterEdges, FilterNames):
 
 	# define output magnitude and flux density arrays	
 	Mags = np.zeros(N_filters)
@@ -113,7 +153,7 @@ def CalcMags(Wave, Spectrum, N_filters, FilterCurves, FilterLength, FilterType, 
 		# the object spectrum needs to be defined from l1_filter_good and l2_filter_good, 
 		# otherwise we will not be able to calculate the flux in this filter
 		if l1_sed > FilterEdges[filter,0] or l2_sed < FilterEdges[filter,1]:
-			print('WARNING filter ', filter, ' - The object spectrum does not fully cover \
+			print('WARNING filter ' + FilterNames[filter] + ': The object spectrum does not fully cover \
 the wavelength range of the filter (magnitude set to -99)')	
 			Mags[filter] = -99.
 			F_nu[filter] = -99
@@ -142,11 +182,15 @@ the wavelength range of the filter (magnitude set to -99)')
 				Mags[filter] = -2.5 * np.log10(F_nu[filter]) - 48.6
 				
 			else:
-				print('WARNING filter ', filter, ' - flux integral contains negative or zero values \
+				print('WARNING filter ' + FilterNames[filter] + ': flux integral contains negative or zero values \
 (magnitude set to -99)')
 				Mags[filter] = -99.
 				F_nu[filter] = -99
 	
+	problems = (Mags == -99)
+	if np.sum(problems) == 0:
+		print("No warnings.")
+
 	return Mags, F_nu
 
 # read the filenames and object types from a list 
@@ -199,10 +243,14 @@ def Read_SDSS_Spectrum(specpath,specname):
 	df = fits.open(specpath + specname)
 	spec = df[1].data
 	info = df[2].data
+	h1 = df[1].header
+	h2 = df[2].header
 	df.close()
 	lam = np.array(10. ** spec.loglam)		# assumed to be Angstrom
 	flux = np.array(spec.flux * 1.e-17) 	# assumed to be erg/s/cm2/A
 	z = info['Z']
+	ra = info['PLUG_RA']
+	dec = info['PLUG_DEC']
 
 	#DataFrame = fits.open(SpecPath + specname)
 	#Spec = DataFrame[0].data
@@ -211,7 +259,7 @@ def Read_SDSS_Spectrum(specpath,specname):
 	#Right_Ascension = SpecInfo['PLUG_RA']
 	#Declination = SpecInfo['PLUG_DEC']
 	
-	return lam, flux, z #, Right_Ascension, Declination, Redshift
+	return lam, flux, z, ra, dec
 
 # TO BE DONE
 def Read_Star_Spectrum(specname, SpecPath):
@@ -268,17 +316,23 @@ def main():
 		spec = SpecData[s]
 		print("Processing spectrum {0:s} / {1:s} {2:s} {3:s}".format(str(s+1),str(len(SpecData)),sed_path+spec['Specfile'],spec['Spectype']))
 		if spec['Spectype'] == 'QSO':
-			lam, flux, z = Read_SDSS_Spectrum(sed_path,spec['Specfile'])
+			lam, flux, z, ra, dec = Read_SDSS_Spectrum(sed_path,spec['Specfile'])
 			lamspec_min = np.min(lam)
 			lamspec_max = np.max(lam)
 
+			lam_before_ext = lam
+			flux_before_ext = flux
+
 			#deredden the spectrum using the Fitzpatrick et al. (1999) extinction curve
-			qso_eb_v = 0.0
-			if qso_eb_v > 0.0:
-				flux = MW_unred_fitzpatrick99(lam, flux, qso_eb_v)
-			
+			eb_v = calc_ebv(ra, dec)
+			print("QSO coordinates: ", ra, dec)
+			print("Dereddening using E(B-V) of ", eb_v)
+			if eb_v > 0.0:
+				flux = MW_unred_fitzpatrick99(lam, flux, eb_v)
+
 		# calculate the magnitudes 
-		Mags, F_nu = CalcMags(lam, flux, N_filters, FilterCurves, FilterLen, FilterType, l_eff, FilterEdges)
+		print('Calculating object magnitudes ...')
+		Mags, F_nu = CalcMags(lam, flux, N_filters, FilterCurves, FilterLen, FilterType, l_eff, FilterEdges, FilterNames)
 
 		# check if it is necessary to extend the spectrum beyond its wavelengths
 		shortest_wavelength_filters = np.min(FilterEdges[:,0])
@@ -286,10 +340,10 @@ def main():
 		extend_lower = 'no'
 		extend_higher = 'no'
 		if lamspec_min > shortest_wavelength_filters:
-			print("The spectrum does not cover the lower end of the filters.")
+			print("WARNING: The spectrum does not cover the lower end of the filters, but will be corrected...")
 			extend_lower = 'yes'
 		if lamspec_max < longest_wavelength_filters:
-			print("The spectrum does not cover the upper end of the filters.")
+			print("WARNING: The spectrum does not cover the upper end of the filters, but will be corrected...")
 			extend_higher = 'yes'
 
 		if extend_lower == 'yes' or extend_higher == 'yes':
@@ -309,14 +363,14 @@ def main():
 				vdb_lam_redshifted = (1.+z) * vdb_lam # redshift the template
 				vdb_flam_abs = IGMabs(z, vdb_lam_redshifted, vdb_flam) # apply IGM absorption
 				# calculate the filter magnitudes of the vdb01 template
-				vdb_Mags, vdb_F_nu = CalcMags(vdb_lam_redshifted, vdb_flam_abs, N_filters, FilterCurves, FilterLen, FilterType, l_eff, FilterEdges)
+				vdb_Mags, vdb_F_nu = CalcMags(vdb_lam_redshifted, vdb_flam_abs, N_filters, FilterCurves, FilterLen, FilterType, l_eff, FilterEdges, FilterNames)
 				# scale the vdb01 template to match the current spectrum in the i-band:
 				sel_scaling_band = (FilterNames == 'SPLUS/i.dat')
 				magdif = vdb_Mags[sel_scaling_band]-Mags[sel_scaling_band]
-				print("Magnitude difference: ", magdif)
+				#print("Magnitude difference: ", magdif)
 				vdb_flam_scaled = vdb_flam_abs * 10.**(0.4*magdif)
 				print('Recalculating vdBerk01 template magnitudes after scaling...')
-				vdb_Mags, vdb_F_nu = CalcMags(vdb_lam_redshifted, vdb_flam_scaled, N_filters, FilterCurves, FilterLen, FilterType, l_eff, FilterEdges)
+				vdb_Mags, vdb_F_nu = CalcMags(vdb_lam_redshifted, vdb_flam_scaled, N_filters, FilterCurves, FilterLen, FilterType, l_eff, FilterEdges, FilterNames)
 				# select the parts for gluing, with an additional buffer (to reduce the effects of bad parts of the spectrum at the extreme ends)
 				lam_buffer = 300 #angstroms
 				if extend_lower == 'yes':
@@ -337,7 +391,8 @@ def main():
 					flux = np.concatenate((flux,vdb_flam_scaled[sel]))
 
 			# our object spectrum should now cover the entire S-PLUS wavelength range and we recalculate the magnitudes
-			Mags_corrected, F_nu_corrected = CalcMags(lam, flux, N_filters, FilterCurves, FilterLen, FilterType, l_eff, FilterEdges)
+			print('Recalculating object magnitudes after corrections...')
+			Mags_corrected, F_nu_corrected = CalcMags(lam, flux, N_filters, FilterCurves, FilterLen, FilterType, l_eff, FilterEdges, FilterNames)
 
 		# convert F_nu to F_lam for plotting purposes
 		F_lam = np.zeros(len(Mags))
@@ -365,7 +420,10 @@ def main():
 		# plot the filter curves
 		PlotFilters(FilterNames, FilterCurves, FilterLen, Fmin, 0.8*Fmax, col, 1, 2)
 
-		# plot the original object spectrum (red solid curve)
+		# plot the original object spectrum (red dotted curve)
+		plt.plot(lam_before_ext,ConvolveSpectrum(flux_before_ext,5),'r:',zorder=2,linewidth=1)
+
+		# plot the original, galactic dereddened object spectrum (red solid curve)
 		plt.plot(lam_orig,ConvolveSpectrum(flux_orig,5),'r-',zorder=2,linewidth=1)
 
 		# plot the synthetic magnitudes from the original spectrum (open circles)

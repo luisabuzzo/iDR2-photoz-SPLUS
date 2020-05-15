@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import matplotlib.lines as mlines
 from matplotlib.legend import Legend
+import extract_spectra
 
 ##################################################### DEFINE MAIN DIRECTORIES ######################################################################
 
@@ -63,29 +64,10 @@ def get_template_files(source,library):
    				template.append(files)
    			return template
 
-def find_closest_value(a,a_bin):
-
-    da = abs(a_bin-a)
-    idx = np.where(da == min(da))
-    idx = idx[0]
-    return idx
-
-# read the extracted BC03 spectra file and return the spectra as arrays
-def import_spectra(filename):
-    
-    df = pandas.read_table(filename,header=None,dtype=np.float32,delimiter=' ')
-    df = np.array(df)
-    specs_ages = df[0,1:]
-    specs_fluxes = df[1:,1:]
-    specs_wave = df[1:,0]
-    nwaves = len(specs_wave)
-    nages = len(specs_ages)
-    return specs_ages, specs_fluxes, specs_wave, nwaves, nages	
-
 def get_bc03(template):
-	specs_age, specs_flux, specs_wavelength, nwavelengths, nages = import_spectra(template)
+	specs_age, specs_flux, specs_wavelength, nwavelengths, nages = extract_spectra.import_spectra(template)
 	age_wanted = 1.e8 # for 100 Myr
-	age_bin = find_closest_value(specs_age,age_wanted)
+	age_bin = extract_spectra.find_closest_value(specs_age,age_wanted)
 	age_myr = specs_age[age_bin][0]/1.e6
 	lam = specs_wavelength
 	flux = (specs_flux[:,age_bin]).flatten()
@@ -293,7 +275,6 @@ def plot(source,library):
 def main(library):
 	if library == "COSMOS":
 		fig = plt.figure(figsize=(5,5))
-		# plot("GAL","BC03")
 		plot("GAL","COSMOS")
 		plot("STAR","all")
 		plt.xlim(-1,2.2)

@@ -17,18 +17,16 @@ from astropy.io import ascii
 
 ##################################################### DEFINE MAIN DIRECTORIES ######################################################################
 
-home = "/home/luisabuzzo/Work/Master/SPLUS/"
+if getpass.getuser() == "luisabuzzo":
+    home = "/home/luisabuzzo/Work/Master/SPLUS"
+elif getpass.getuser() == "mlgbuzzo":
+    home = "/home/mlgbuzzo/LePhare/"
 
 resulting_cat_dir = os.path.join(home, "results/catalogues/")
 resulting_plot_dir = os.path.join(home,"results/plots/")
 
 os.environ['LEPHAREDIR'] = os.path.join(home, "lephare_dev")
 os.environ['LEPHAREWORK'] = os.path.join(home, "lepharework")
-
-cat = ["SPLUS", "HYDRA", "STRIPE82_SDSS"]
-mags = ["auto","petro","aper"]
-dataset = ['DR1',"iDR2","iDR2_compressed"]
-classes = ["gal","star","qso","all"]
 
 ####################################################################################################################################################
 
@@ -54,9 +52,6 @@ def columns_master_catalogues(catalogue,dataset):
 		master = pyfits.open(f)
 		columns = master[2].columns
 	return columns
-
-#columns = columns_master_catalogues(cat[0],dataset[1])
-#print('Columns present in the catalogue: {} \n'.format(get_master_catalogues(cat[0],dataset[1]))+str(columns))
 
 def read_master_catalogues(catalogue,dataset):
 	""" Read master catalogue """
@@ -124,5 +119,15 @@ def save_lephare_catalogue(catalogue,mags,dataset):
 		'F395_{}'.format(mags), 'eF395_{}'.format(mags), 'F410_{}'.format(mags), 'eF410_{}'.format(mags), 'F430_{}'.format(mags), 'eF430_{}'.format(mags), 'g_{}'.format(mags), 'eg_{}'.format(mags),
 		'F515_{}'.format(mags), 'eF515_{}'.format(mags), 'r_{}'.format(mags), 'er_{}'.format(mags), 'F660_{}'.format(mags), 'eF660_{}'.format(mags), 'i_{}'.format(mags), 'ei_{}'.format(mags),
 		'F861_{}'.format(mags), 'eF861_{}'.format(mags), 'z_{}'.format(mags), 'ez_{}'.format(mags),'context','field'], overwrite=True, format="commented_header")
+	return
 
-save_lephare_catalogue(cat[2],mags[0],dataset[1])
+
+def main():
+	save_lephare_catalogue(catalogue="SPLUS", mags="auto",dataset="iDR2")
+	save_lephare_catalogue(catalogue="HYDRA", mags="auto",dataset="iDR2")
+	save_lephare_catalogue(catalogue="STRIPE82_SDSS", mags="auto",dataset="iDR2")
+	return
+
+if __name__ == "__main__":
+	main()
+		

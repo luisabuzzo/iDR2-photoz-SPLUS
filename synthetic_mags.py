@@ -8,6 +8,7 @@ import os.path
 from astropy.convolution import convolve, Gaussian1DKernel
 from astropy.table import Table,vstack,hstack
 from IGMabs import *
+from MW_unred_fitzpatrick99 import *
 
 # add the filter transmission curves to an active plot
 def PlotFilters(FilterNames, FilterCurves, FilterLen, Tmin, Tmax, col, zorder, linethick):
@@ -271,6 +272,11 @@ def main():
 			lamspec_min = np.min(lam)
 			lamspec_max = np.max(lam)
 
+			#deredden the spectrum using the Fitzpatrick et al. (1999) extinction curve
+			qso_eb_v = 0.0
+			if qso_eb_v > 0.0:
+				flux = MW_unred_fitzpatrick99(lam, flux, qso_eb_v)
+			
 		# calculate the magnitudes 
 		Mags, F_nu = CalcMags(lam, flux, N_filters, FilterCurves, FilterLen, FilterType, l_eff, FilterEdges)
 

@@ -7,6 +7,7 @@ import pandas
 import math
 import getpass
 import re
+from random import randint
 from astropy.io import fits
 from astropy.io import ascii
 import astropy.coordinates as coord
@@ -64,18 +65,23 @@ def get_template_files(source,library):
    				template.append(files)
    			return template
 
-def get_bc03(template):
-	specs_age, specs_flux, specs_wavelength, nwavelengths, nages = extract_spectra.import_spectra(template)
-	age_wanted = 1.e8 # for 100 Myr
-	age_bin = extract_spectra.find_closest_value(specs_age,age_wanted)
+def age():
+	specs_age, specs_flux, specs_wavelength, nwavelengths, nages = extract_spectra.import_spectra(os.path.join(home, "lephare_dev/sed/GAL/BC03_CHAB/extracted_bc2003_lr_m42_chab_tau03_dust00.ised_ASCII")) # for 100 Myr
+	a = specs_age
+	return a
+
+def get_bc03(template,age):
+	specs_age, specs_flux, specs_wavelength, nwavelengths, nages = extract_spectra.import_spectra(template) # for 100 Myr
+	a = specs_age
+	age_bin = extract_spectra.find_closest_value(specs_age,age)
 	age_myr = specs_age[age_bin][0]/1.e6
 	lam = specs_wavelength
 	flux = (specs_flux[:,age_bin]).flatten()
 	return lam,flux
 
-def apply_redshift(template,library,redshift):
+def apply_redshift(template,library,redshift,age):
 	if library == "BC03":
-		wavelength,flux = get_bc03(template)
+		wavelength,flux = get_bc03(template,age)
 	else:
 		a = ascii.read(template)
 		wavelength,flux = a['col1'],a['col2']
@@ -83,7 +89,7 @@ def apply_redshift(template,library,redshift):
 	return q,flux
 
 def apply_extinction(template,redshift,library,extlaw,ebv):
-	wavelength,flux = apply_redshift(template,library,redshift)
+	wavelength,flux = apply_redshift(template,library,redshift,age="all")
 	if extlaw == "None":
 		new_template = flux
 		return wavelength,new_template
@@ -178,35 +184,66 @@ def getMags(Wave,Spectrum,N_filters,FilterCurves,FilterLength,FilterType):
 
 	return Mags
 
-def plot(source,library):
+def plot_objects(splus,catalog):
+	if splus == 0:
+		print("Do nothing")
+	if splus == 1:
+		data = fits.open(os.path.join(home, "data/iDR2/SPLUS_{}_master_catalogue_iDR2_december_2019.fits.fz".format(catalog)))
+		cat = data[2].data
+		data.close
+		nrand = 10000
+		sel = np.int_(np.zeros((nrand)))
+		for p in range(0,nrand):
+			num = randint(0, len(cat))
+			sel[p] = num
+		cat = cat[sel]
+		print(len(cat))
+		cat = cat[(cat['PhotoFlag']==0) & (cat['s2nDet'] > 10)]
+		print(len(cat))
+		mags_ug = cat['uJAVA_auto'] - cat['g_auto']
+		mags_gr = cat['g_auto'] - cat['r_auto']
+		mags_ri = cat['r_auto'] - cat['i_auto']
+		mags_iz = cat['i_auto'] - cat['z_auto']
+		return mags_ug,mags_gr,mags_ri,mags_iz
+			
+
+def plot(source,library,colour):
 #read in the filters 
 	template = get_template_files(source,library)
 	FilterPath = os.path.join(lephare_dev, "filt/splus2/")
 	FilterFile = 'filters.lst'
 	FilterNames, FilterCurves, FilterType, FilterLen, N_filters = ReadFilters(FilterFile, FilterPath)
+	Mags_ug = []
 	Mags_gr = []
 	Mags_ri = []
 	Mags_iz = []
-	# plt.figure()
 	if library == "COSMOS":
+		fig = plt.figure()
 		redshift = np.arange(0.0,1.5,0.1)
 		extlaw = ["None","SB_calzetti","SMC_prevot","SB_calzetti_bump1","SB_calzetti_bump2"]
-		ebv = [0.0,0.05,0.1,0.15,0.2]#,0.25,0.3,0.4,0.5]	
+		ebv = [0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.4,0.5]	
 		for h in template:
 			if 'Ell' in h:
 				for i in redshift:
 		 			print(h,i)
-		 			w,f = apply_redshift(template=h,library=library,redshift=i)
+		 			w,f = apply_redshift(template=h,library=library,redshift=i,age="all")
 		 			SED_WaveLength = w
 		 			SED_Flux = f
 	 				Mags = getMags(SED_WaveLength, SED_Flux, N_filters, FilterCurves, FilterLen, FilterType)
+	 				Mags_ug.append(Mags[0] - Mags[5])
 	 				Mags_gr.append(Mags[5] - Mags[7])
 	 				Mags_ri.append(Mags[7] - Mags[9])
 	 				Mags_iz.append(Mags[9] - Mags[11])
-
-				plt.plot(Mags_ri,Mags_gr,c='r',lw=0.5)
+				if colour == "ug_gr":
+					plt.plot(Mags_gr,Mags_ug,c='r',lw=0.8,alpha=0.3,zorder=100)
+				elif colour == "gr_ri":
+					plt.plot(Mags_ri,Mags_gr,c='r',lw=0.8,alpha=0.3,zorder=100)
+				elif colour == "ri_iz":
+					plt.plot(Mags_iz,Mags_ri,c='r',lw=0.8,alpha=0.3,zorder=100)
+				Mags_ug = []
 				Mags_gr = []
 				Mags_ri = []
+				Mags_iz = []
 
 			else:
 				for j in extlaw:
@@ -217,96 +254,185 @@ def plot(source,library):
 				 			SED_WaveLength = w
 				 			SED_Flux = f
 			 				Mags = getMags(SED_WaveLength, SED_Flux, N_filters, FilterCurves, FilterLen, FilterType)
+			 				Mags_ug.append(Mags[0] - Mags[5])
 			 				Mags_gr.append(Mags[5] - Mags[7])
 			 				Mags_ri.append(Mags[7] - Mags[9])
 			 				Mags_iz.append(Mags[9] - Mags[11])
 			 			if 'SB' in h:
-			 				plt.plot(Mags_ri,Mags_gr,c='b',lw=0.5,alpha=0.3)
+			 				if colour == "ug_gr":
+			 					plt.plot(Mags_gr,Mags_ug,c='b',lw=0.8,alpha=0.3,zorder=90)
+			 				elif colour == "gr_ri":
+			 					plt.plot(Mags_ri,Mags_gr,c='b',lw=0.8,alpha=0.3,zorder=90)
+			 				elif colour == "ri_iz":
+			 					plt.plot(Mags_iz,Mags_ri,c='b',lw=0.8,alpha=0.3,zorder=90)
 			 			else:
-			 				plt.plot(Mags_ri,Mags_gr,c='g',lw=0.5,alpha=0.3)
+			 				if colour == "ug_gr":
+			 					plt.plot(Mags_gr,Mags_ug,c='g',lw=0.8,alpha=0.3,zorder=90)
+			 				elif colour == "gr_ri":
+			 					plt.plot(Mags_ri,Mags_gr,c='g',lw=0.8,alpha=0.3,zorder=90)
+			 				elif colour == "ri_iz":
+			 					plt.plot(Mags_iz,Mags_ri,c='g',lw=0.8,alpha=0.3,zorder=90)
+			 			Mags_ug = []
 			 			Mags_gr = []
 			 			Mags_ri = []
-
+			 			Mags_iz = []
+		line1 = mlines.Line2D([], [], color='r', linewidth=0.8)
+		line2 = mlines.Line2D([], [], color='g', linewidth=0.8)
+		line3 = mlines.Line2D([], [], color='b', linewidth=0.8)
+		marker = plt.scatter([], [], color='orange', marker="*",s=15)
+		leg = Legend(fig, handles=[line1,line2,line3,marker], labels=[r'Ell (COSMOS)', r'Disc (COSMOS)', r'SB (COSMOS)', r'STAR'], bbox_to_anchor=[0.4,0.89],frameon=True)
+		fig.add_artist(leg)
 	elif library == "BC03":
+		age_wanted = age()
+		fig = plt.figure()
 		redshift = np.arange(0.0,1.5,0.1)	
 		files = glob.glob(os.path.join(home, "lephare_dev/sed/GAL/BC03_CHAB/extracted_*"))
 		for h in files:
-			for i in redshift:
-				print(h,i)
-				w,f = apply_redshift(template=h,library=library,redshift=i)
-				SED_WaveLength = w
-				SED_Flux = f
-				Mags = getMags(SED_WaveLength, SED_Flux, N_filters, FilterCurves, FilterLen, FilterType)
-				Mags_gr.append(Mags[5] - Mags[7])
-				Mags_ri.append(Mags[7] - Mags[9])
-				Mags_iz.append(Mags[9] - Mags[11])
-			plt.plot(Mags_ri,Mags_gr,c='magenta',lw=0.5,alpha=0.3)
-			Mags_gr = []
-			Mags_ri = []
-# 
+			for a in age_wanted:
+				for i in redshift:
+					print(h,i)
+					w,f = apply_redshift(template=h,library=library,redshift=i,age=a)
+					SED_WaveLength = w
+					SED_Flux = f
+					Mags = getMags(SED_WaveLength, SED_Flux, N_filters, FilterCurves, FilterLen, FilterType)
+					Mags_ug.append(Mags[0] - Mags[5])
+					Mags_gr.append(Mags[5] - Mags[7])
+					Mags_ri.append(Mags[7] - Mags[9])
+					Mags_iz.append(Mags[9] - Mags[11])
+				if colour == "ug_gr":
+					plt.plot(Mags_gr,Mags_ug,c='magenta',lw=0.8,alpha=0.3,zorder=90)
+				elif colour == "gr_ri":
+					plt.plot(Mags_ri,Mags_gr,c='magenta',lw=0.8,alpha=0.3,zorder=90)
+				elif colour == "ri_iz":
+					plt.plot(Mags_iz,Mags_ri,c='magenta',lw=0.8,alpha=0.3,zorder=90)
+				Mags_ug = []
+				Mags_gr = []
+				Mags_ri = []
+				Mags_iz = []
+			line1 = mlines.Line2D([], [], color='magenta', linewidth=0.8)
+			marker = plt.scatter([], [], color='orange', marker="*",s=15)
+			leg = Legend(fig, handles=[line1,marker], labels=[r'BC03', r'STAR'], bbox_to_anchor=[0.28,0.89],frameon=True)
+			fig.add_artist(leg)
+	# 
 	elif source == "QSO":
 		redshift = np.arange(0.0,4.0,0.1)	
 		for h in template:
  			for i in redshift:
  				print(h,i)
-	 			w,f = apply_redshift(template=h,library=library,redshift=i)
+	 			w,f = apply_redshift(template=h,library=library,redshift=i,age="all")
 	 			SED_WaveLength = w
 	 			SED_Flux = f
  				Mags = getMags(SED_WaveLength, SED_Flux, N_filters, FilterCurves, FilterLen, FilterType)
+ 				Mags_ug.append(Mags[0] - Mags[5])
  				Mags_gr.append(Mags[5] - Mags[7])
  				Mags_ri.append(Mags[7] - Mags[9])
  				Mags_iz.append(Mags[9] - Mags[11])
- 			plt.plot(Mags_ri,Mags_gr,c='purple',lw=0.5,alpha=0.3)
+ 			if colour == "ug_gr":
+ 				plt.plot(Mags_gr,Mags_ug,c='purple',lw=0.5,alpha=0.3,zorder=100)
+ 			elif colour == "gr_ri":
+ 				plt.plot(Mags_ri,Mags_gr,c='purple',lw=0.5,alpha=0.3,zorder=100)
+ 			elif colour == "ri_iz":
+ 				plt.plot(Mags_iz,Mags_ri,c='purple',lw=0.5,alpha=0.3,zorder=100)
+ 			Mags_ug = []
  			Mags_gr = []
  			Mags_ri = []
+ 			Mags_iz = []
 
 	elif source == "STAR":
 		for h in template:
 			print(h)
-			w,f = apply_redshift(template=h,library=library,redshift=0)
+			w,f = apply_redshift(template=h,library=library,redshift=0,age="all")
 			SED_WaveLength = w
 			SED_Flux = f
 			Mags = getMags(SED_WaveLength, SED_Flux, N_filters, FilterCurves, FilterLen, FilterType)
+			Mags_ug = Mags[0] - Mags[5]
 			Mags_gr = Mags[5] - Mags[7]
 			Mags_ri = Mags[7] - Mags[9]
 			Mags_iz = Mags[9] - Mags[11]
-			plt.scatter(Mags_ri,Mags_gr,c='orange',s=15,marker='*',alpha=0.3)
+			if colour == "ug_gr":
+				plt.scatter(Mags_gr,Mags_ug,c='orange',s=20,marker='*',alpha=1,zorder=100)
+			elif colour == "gr_ri":
+				plt.scatter(Mags_ri,Mags_gr,c='orange',s=20,marker='*',alpha=1,zorder=100)
+			elif colour == "ri_iz":
+				plt.scatter(Mags_iz,Mags_ri,c='orange',s=20,marker='*',alpha=1,zorder=100)
 
-def main(library):
-	if library == "COSMOS":
-		fig = plt.figure(figsize=(5,5))
-		plot("GAL","COSMOS")
-		plot("STAR","all")
-		plt.xlim(-1,2.2)
-		plt.ylim(-1,3)
-		line1 = mlines.Line2D([], [], color='r', linewidth=0.8)
-		line2 = mlines.Line2D([], [], color='g', linewidth=0.8)
-		line3 = mlines.Line2D([], [], color='b', linewidth=0.8)
-		marker = plt.scatter([], [], color='orange', marker="*",s=15)
-		leg = Legend(fig, handles=[line1,line2,line3,marker], labels=[r'Ell (COSMOS)', r'Disc (COSMOS)', r'SB (COSMOS)', r'STAR'], bbox_to_anchor=[0.5,0.89],frameon=True)
-		plt.grid()
-		plt.xlabel(r'r-i',fontsize=15)
-		plt.ylabel(r'g-r',fontsize=15)
-		fig.add_artist(leg)
-		plt.savefig(os.path.join(resulting_plot_dir,"template_coverage_all_{}.png".format(library)), bbox_inches="tight")
-		plt.show()
-	elif library == "BC03":
-		fig = plt.figure(figsize=(5,5))
-		plot("GAL","BC03")
-		plot("STAR","all")
-		plt.xlim(-1,2.2)
-		plt.ylim(-1,3)
-		line1 = mlines.Line2D([], [], color='magenta', linewidth=0.8)
-		marker = plt.scatter([], [], color='orange', marker="*",s=15)
-		leg = Legend(fig, handles=[line1,marker], labels=[r'BC03', r'STAR'], bbox_to_anchor=[0.455,0.89],frameon=True)
-		plt.grid()
-		plt.xlabel(r'r-i',fontsize=15)
-		plt.ylabel(r'g-r',fontsize=15)
-		fig.add_artist(leg)
-		plt.savefig(os.path.join(resulting_plot_dir,"template_coverage_all_{}.png".format(library)), bbox_inches="tight")
-		plt.show()
+def main(library,splus):
+	if splus == 1:
+		hydra = plot_objects(splus,"HYDRA")
+		stripe82 = plot_objects(splus,"STRIPE82_SDSS")
+		splus = plot_objects(splus,"SPLUS")
+		colours = ["ug_gr","gr_ri","ri_iz"]
+		for colour in colours:
+			plot("GAL",library,colour)
+			plot("STAR","all",colour)
+			if colour == "ug_gr":
+				ug = plt.scatter(hydra[1],hydra[0],c='gray',s=2,alpha=0.2,zorder=0)
+				gr = plt.scatter(stripe82[1],stripe82[0],c='gray',s=2,alpha=0.2,zorder=0)
+				ri = plt.scatter(splus[1],splus[0],c='gray',s=2,alpha=0.2,zorder=0)
+				plt.xlabel(r'g-r',fontsize=15)
+				plt.ylabel(r'u-g',fontsize=15)
+				# plt.legend(handles=[ug,gr,ri], labels=[r'HYDRA', r'STRIPE82',r'MS'])
+				plt.xlim(-1,3)
+				plt.ylim(-1,3.5)
+				plt.grid()
+				plt.savefig(os.path.join(resulting_plot_dir,"template_coverage_all_{}_{}.png".format(library,colour)), bbox_inches="tight")
+			elif colour == "gr_ri":
+				ug = plt.scatter(hydra[2],hydra[1],c='gray',s=2,alpha=0.2,zorder=0)
+				gr = plt.scatter(stripe82[2],stripe82[1],c='gray',s=2,alpha=0.2,zorder=0)
+				ri = plt.scatter(splus[2],splus[1],c='gray',s=2,alpha=0.2,zorder=0)
+				# plt.legend(handles=[ug,gr,ri], labels=[r'HYDRA', r'STRIPE82',r'MS'])
+				plt.xlabel(r'r-i',fontsize=15)
+				plt.ylabel(r'g-r',fontsize=15)
+				plt.xlim(-1,3)
+				plt.ylim(-1,3)
+				plt.grid()
+				plt.savefig(os.path.join(resulting_plot_dir,"template_coverage_all_{}_{}.png".format(library,colour)), bbox_inches="tight")
+			elif colour == "ri_iz":
+				ug = plt.scatter(hydra[3],hydra[2],c='gray',s=2,alpha=0.2,zorder=0)
+				gr = plt.scatter(stripe82[3],stripe82[2],c='gray',s=2,alpha=0.2,zorder=0)
+				ri = plt.scatter(splus[3],splus[2],c='gray',s=2,alpha=0.2,zorder=0)
+				# plt.legend(handles=[ug,gr,ri], labels=[r'HYDRA', r'STRIPE82',r'MS'])
+				plt.xlabel(r'i-z',fontsize=15)
+				plt.ylabel(r'r-i',fontsize=15)
+				plt.xlim(-1,3)
+				plt.ylim(-1,3)
+				plt.grid()
+				plt.savefig(os.path.join(resulting_plot_dir,"template_coverage_all_{}_{}.png".format(library,colour)), bbox_inches="tight")
+				plt.show()
+	if splus == 0:
+		hydra = plot_objects(splus,"HYDRA")
+		stripe82 = plot_objects(splus,"STRIPE82_SDSS")
+		splus = plot_objects(splus,"SPLUS")
+		colours = ["ug_gr","gr_ri","ri_iz"]
+		for colour in colours:
+			plot("GAL",library,colour)
+			plot("STAR","all",colour)
+			if colour == "ug_gr":
+				plt.xlabel(r'g-r',fontsize=15)
+				plt.ylabel(r'u-g',fontsize=15)
+				plt.xlim(-1,2.5)
+				plt.ylim(-1,3.5)
+				plt.grid()
+				plt.savefig(os.path.join(resulting_plot_dir,"template_coverage_noobj_{}_{}.png".format(library,colour)), bbox_inches="tight")
+			elif colour == "gr_ri":
+				plt.xlabel(r'r-i',fontsize=15)
+				plt.ylabel(r'g-r',fontsize=15)
+				plt.xlim(-1,2.5)
+				plt.ylim(-1,3)
+				plt.grid()
+				plt.savefig(os.path.join(resulting_plot_dir,"template_coverage_noobj_{}_{}.png".format(library,colour)), bbox_inches="tight")
+				plt.show()
+			elif colour == "ri_iz":
+				plt.xlabel(r'i-z',fontsize=15)
+				plt.ylabel(r'r-i',fontsize=15)
+				plt.xlim(-1,2.5)
+				plt.ylim(-1,3)
+				plt.grid()
+				plt.savefig(os.path.join(resulting_plot_dir,"template_coverage_noobj_{}_{}.png".format(library,colour)), bbox_inches="tight")
+	
+if __name__ == '__main__':
+	main("COSMOS",1)
+	main("BC03",1)
+	
 
-if __name__ == "__main__":
-	main("COSMOS")
-	main("BC03")
 		

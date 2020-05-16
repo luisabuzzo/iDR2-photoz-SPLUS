@@ -1,10 +1,9 @@
 import numpy as np
 
-def IGMabs(Redshift, lamRest, flux):
+### make sure lam is the observed-frame wavelength ###
+def IGMabs(Redshift, lam, flux):
 	h = 6.625*pow(10,-27)   # Planck constant, ergs
 	c = 2.999*pow(10,18)     # speed of light, Angstroms s-1
-
-	lam = lamRest*Redshift
 
 	ZabsA = (lam - 1216)/1216  # Ly-alpha
 	ZabsB = (lam - 1026)/1026  # Ly-beta
@@ -24,11 +23,11 @@ def IGMabs(Redshift, lamRest, flux):
 	tauD = 9.3*pow(10,-4)*np.power(lam/950,3.46)
 
 	#find out at which observed wavelengths the absorption does not apply
-	lam_range_A = np.where(ZabsA >= Redshift-1)
-	lam_range_B = np.where(ZabsB >= Redshift-1)
-	lam_range_G = np.where(ZabsG >= Redshift-1)
-	lam_range_D = np.where(ZabsD >= Redshift-1)
-	lam_range_L = np.where(ZabsL >= Redshift-1)
+	lam_range_A = np.where(ZabsA >= Redshift)
+	lam_range_B = np.where(ZabsB >= Redshift)
+	lam_range_G = np.where(ZabsG >= Redshift)
+	lam_range_D = np.where(ZabsD >= Redshift)
+	lam_range_L = np.where(ZabsL >= Redshift)
 	tauA[lam_range_A[0]] = 0
 	tauB[lam_range_B[0]] = 0
 	tauG[lam_range_G[0]] = 0
@@ -37,10 +36,11 @@ def IGMabs(Redshift, lamRest, flux):
 
 	#numeric approximation of Equation 16 in Madau (1995):
 	Xc  = 1+ZabsL
-	t1 = 0.25*np.power(Xc,3.0)*(pow(Redshift,0.46)-np.power(Xc,0.46)) 
-	t2 = 9.40*np.power(Xc,1.5)*(pow(Redshift,0.18)-np.power(Xc,0.18))
-	t3 = 0.70*np.power(Xc,3.0)*(np.power(Xc,-1.32)-pow(Redshift,-1.32))
-	t4 = 0.023*(pow(Redshift,1.68)-np.power(Xc,1.68))
+	Xem = 1 + Redshift
+	t1 = 0.25*np.power(Xc,3.0)*(pow(Xem,0.46)-np.power(Xc,0.46)) 
+	t2 = 9.40*np.power(Xc,1.5)*(pow(Xem,0.18)-np.power(Xc,0.18))
+	t3 = 0.70*np.power(Xc,3.0)*(np.power(Xc,-1.32)-pow(Xem,-1.32))
+	t4 = 0.023*(pow(Xem,1.68)-np.power(Xc,1.68))
 	tauL = t1 + t2 - t3 - t4
 	tauL[lam_range_L[0]] = 0
 

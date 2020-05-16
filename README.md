@@ -9,7 +9,7 @@ NEEDS:
 - template_folder.tar.gz
 ---
 2. create_lephare_catalogues.py - 
-Description...
+This routine is used to read the master catalogues, extract the desired columns for the photometric redshift estimation (magnitudes and erros), identify the missing bands and label them accordingly, in order for LePhare to ignore them/ use upper limit errors.
 ---
 3. footprint.py - 
 This routine makes a plot of the sky with the tiles from the S-PLUS footprint and the iDR2 overlaid. Other catalogs of sources can be added as an option. The program needs some files contained in the footprint_data.tar.gz package.

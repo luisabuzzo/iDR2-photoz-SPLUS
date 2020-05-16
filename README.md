@@ -37,4 +37,10 @@ This makes the iDR2 data analysis overview websites. It runs two routines direct
 Wanted/would like:
 - make the footprint plot clickable such that one can also go to a pointing directly by plotting on a location in the plot.
 ---
-
+7. run_lephare.py -
+This routine runs all the steps of LePhare for different types of objects: star, quasars and galaxies.
+---
+8. template_coverage.py -
+This routine plots the star, quasar and galaxy templates (COSMOS and BC03) in the colour-colour space. The routine contains the option to plot the S-PLUS objects or not.
+Working on: plot of the templates in the colour-redshift space.
+---

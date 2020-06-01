@@ -11,7 +11,7 @@ def make_plots(cat,starcat,filter,plotonscreen):
 	#axs[0].plot(cat['r_petro'],cat['r_auto']-cat['r_aper'],'k.',markersize=1,zorder=1)
 	axs[0].scatter(starcat[filter+'_petro'],starcat[filter+'_auto']-starcat[filter+'_aper'],c=starcat['fwhm'],s=1,zorder=10,cmap='jet')
 	axs[0].set_xlabel(filter+' (petro)')
-	axs[0].set_ylabel(filter+' (petro) - '+filter+' (aper)')
+	axs[0].set_ylabel(filter+' (auto) - '+filter+' (aper)')
 	axs[0].plot([13,25],[0,0],'r:',zorder=50)
 
 	axs[1].axis([13,25,-1.5,1.5])

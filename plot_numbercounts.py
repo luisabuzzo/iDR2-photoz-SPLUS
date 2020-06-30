@@ -14,9 +14,6 @@ from astropy.table import Table
 from astropy.io import fits,ascii
 import collections
 
-plt.rcParams["text.usetex"] = False
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-
 if getpass.getuser() == "luisabuzzo":
     home = "/home/luisabuzzo/Work/Master/SPLUS"
 elif getpass.getuser() == "mlgbuzzo":

@@ -140,10 +140,9 @@ def main():
 	for i in magstar_min:
 		print(i)
 		plt.figure()
-		for j in range(6): 
+		for j in range(6):
 			number_dens = []
 			for r in radius:
-<<<<<<< HEAD
 				if r <=102:
 					f_big = globals()["Table_r" + str(r+radius_steps)]
 					f_small = globals()["Table_r" + str(r)]
@@ -159,22 +158,6 @@ def main():
 					number_dens.append(number_density)
 			counts = np.where(np.isnan(number_dens), 0, number_dens)
 			plt.plot(radius[0:11],counts,'o--',label=label[j],marker=marker[j],lw=0.5,markersize=3)
-=======
-				# plot_radial_bins2(r,catstars,catfile,filt,photoflag,i,i+1)
-				df0,df1,df2,df3,df4,df5 = plot_radial_bins2(r,catstars,catfile,filt,photoflag,i,i+1)
-				df0_in,df1_in,df2_in,df3_in,df4_in,df5_in = plot_radial_bins2(r-2,catstars,catfile,filt,photoflag,i,i+1)
-				print(len(df4))
-		
-				area = np.pi*(r)**2 - np.pi*(r-2)**2 #calculate the area of the ring
-				df = pd.concat([locals()["df"+str(j)],locals()["df"+str(j)+"_in"]], keys=['col1', 'col2']) #compare the objects that are in both the bigger and smaller radius 
-				dropped = df.drop_duplicates(['col1'], keep=False) #drop the duplicates, that way we are counting only the objects present in the ring.
-				counts = np.median(dropped['col2'])
-				number_density = [counts/area]
-				number_dens.append(number_density)
-				print(r,number_density)
-			counts = np.where(np.isnan(number_dens), 0, number_dens) #replaces nan with 0, that way we can visualize in which radius there are no new objects appearing
-			plt.plot(radius,counts,'o--',label=label[j],marker=marker[j],lw=0.5,markersize=3)
->>>>>>> 4f78d3be588344f85ba7342fc0cd3bf3375094dc
 
 		plt.xlabel(r'$radius \,\,(arcsec)$')
 		plt.ylabel(r'$ number\,\, density$')

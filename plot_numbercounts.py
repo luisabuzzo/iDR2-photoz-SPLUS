@@ -29,7 +29,7 @@ def check_star_in_border(cat_stars,photoflag,survey,distance_to_border):
     catalog = data[1].data
     sel = (catalog['PhotoFlag'] == photoflag)
     starcat = catalog[sel]
-    print(len(starcat))
+    # print(len(starcat))
     coords_stars = SkyCoord(ra=starcat['RA']*u.deg,dec=starcat['Dec']*u.deg, frame=FK5)
     idx_stars, idx_stars2, d2d, d3d = coords_stars.search_around_sky(coords_stars,distance_to_border*u.arcsec)
     stars_near_stars = [x for x, y in collections.Counter(idx_stars).items() if y > 1]
@@ -70,10 +70,10 @@ def check_star_in_border(cat_stars,photoflag,survey,distance_to_border):
 
     stars_near_something = np.concatenate([stars_near_stars,stars_near_borders])
     stars_near_something = [x for x, y in collections.Counter(stars_near_something).items() if y > 1]
-    print(len(stars_near_something))
+    # print(len(stars_near_something))
 
     coords_stars = np.delete(starcat,stars_near_something,axis=0)
-    print(len(coords_stars))
+    # print(len(coords_stars))
     return coords_stars
 
 
@@ -95,6 +95,10 @@ def sel_cat(rad,cat_stars,cat_splus,filt,photoflag):
 	for j in idx_splus:
 		mag_obj.append(spluscat['{}'.format(filt)][j])
 	table = Table([idx_stars,mag_star, idx_splus,mag_obj, d2d, d3d],names=['index_starcoord','mag_star','index_spluscoord','mag_obj','distance_2d','distance_3d'])
+	# print(table)
+	d = {'index_starcoord': idx_stars, 'mag_star': mag_star,'index_spluscoord': idx_splus, 'mag_obj':mag_obj}
+	table = pd.DataFrame(data=d)
+	# print(table)
 	return table
 
 
@@ -102,7 +106,7 @@ def plot_radial_bins2(f,magstar_min,magstar_max):
 
 	bin_mag_obj = np.arange(17,23,1)
 	file = f[(f['mag_star'] > magstar_min) & (f['mag_star'] < magstar_max)]
-	print(len(file))
+	# print(len(file))
 
 	for j in range(6):
 		file2 = file[file['mag_obj'] < bin_mag_obj[j]]
@@ -123,11 +127,11 @@ def main():
 	photoflag = 0
 	radius_steps = 10
 	survey = 'STRIPE82'
-	distance_to_border = 100 # arcsec
+	distance_to_border = 300 # arcsec
 
 	magstar_min = np.arange(10.0,15.0,1)
 
-	radius = np.arange(2,114,radius_steps)
+	radius = np.arange(2,314,radius_steps)
 	label = ['mag_obj < 17','mag_obj < 18','mag_obj < 19','mag_obj < 20','mag_obj < 21','mag_obj < 22']
 	marker= ['o', 's', '^', 'p', 'X','P']
 
@@ -136,35 +140,34 @@ def main():
 		print(r)
 		globals()["Table_r" + str(r)] = sel_cat(r,starcat,catfile,filt,photoflag)
 
-
 	for i in magstar_min:
 		print(i)
 		plt.figure()
 		for j in range(6):
 			number_dens = []
 			for r in radius:
-				if r <=102:
+				if r <=302:
 					f_big = globals()["Table_r" + str(r+radius_steps)]
 					f_small = globals()["Table_r" + str(r)]
-					df0,df1,df2,df3,df4,df5 = plot_radial_bins2(f_big,i,i+1)
-					df0_in,df1_in,df2_in,df3_in,df4_in,df5_in = plot_radial_bins2(f_small,i,i+1)
+					print(len(f_big),len(f_small))
+					df = pd.concat([f_big,f_small])
+					print(len(df))
+					dropped = df.drop_duplicates(subset=['index_spluscoord'], keep=False)
+					print(len(dropped))
+					df0,df1,df2,df3,df4,df5 = plot_radial_bins2(dropped,i,i+1)
 					area = np.pi*((r+radius_steps)**2 - (r)**2)
-					print(area)
-					df = pd.concat([locals()["df"+str(j)],locals()["df"+str(j)+"_in"]], keys=['col1', 'col2'])
-					dropped = df.drop_duplicates(['col1'], keep=False)
-					print(len(df0),len(df0_in),len(dropped))
-					counts = np.median(dropped['col2'])
+					counts = np.median(locals()["df" + str(j)]['col2'])
 					number_density = [counts/area]
 					number_dens.append(number_density)
 			counts = np.where(np.isnan(number_dens), 0, number_dens)
-			plt.plot(radius[0:11],counts,'o--',label=label[j],marker=marker[j],lw=0.5,markersize=3)
+			plt.plot(radius[0:31],counts,'o--',label=label[j],marker=marker[j],lw=0.5,markersize=3)
 
 		plt.xlabel(r'$radius \,\,(arcsec)$')
 		plt.ylabel(r'$ number\,\, density$')
 		plt.title(r'{} < mag_star < {}'.format(i,i+1))
 		plt.legend()
-		plt.savefig(os.path.join(home,'results/plots/teststars_area_{}_photoflag{}_magmin{}_{}.png'.format(filt,photoflag,i,distance_to_border)))
-	plt.show()
+		plt.savefig(os.path.join(home,'results/plots/stars_area_{}_photoflag{}_magmin{}_{}.png'.format(filt,photoflag,i,distance_to_border)))
+	# plt.show()
 
 if __name__ == '__main__':
 	main()
